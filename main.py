@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -146,19 +147,19 @@ def index(
             return
 
         # Find the right indexer class
-        indexer_cls = None
+        indexer: Indexer = None
         for cls in indexers:
             instance = cls()
             if instance.name == f"{source}_{schema}":
-                indexer_cls = cls
+                indexer = instance
                 break
 
-        if not indexer_cls:
+        if indexer is None:
             print(f"No indexer found with source={source} and type={schema}")
             return
 
-        print(f"\nRunning: {indexer_cls()}\n")
-        indexer_cls().run()
+        print(f"\nRunning: {str(indexer)}\n")
+        indexer.run()
         print("\nIndexer complete.")
 
 
@@ -169,29 +170,35 @@ def package():
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("\nUsage: uv run main.py <command>")
+    parser = argparse.ArgumentParser(prog="main.py", description="Run analysis command")
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+
+    # Analyze subcommand
+    subparsers.add_parser("analyze", help="Run an analysis")
+
+    # Index subcommand
+    index_parser = subparsers.add_parser("index", help="Run an indexer")
+    index_parser.add_argument("--source", type=str, dest="source", help="Source to use (e.g. kalshi, polymarket)")
+    index_parser.add_argument("--schema", type=str, dest="schema", help="Type of data to fetch (e.g. trades, markets)")
+
+    # Package subcommand
+    subparsers.add_parser("package", help="Package the data")
+
+    args = parser.parse_args()
+
+    if not args.command or args.command not in ["analyze", "index", "package"]:
+        print(f"Unknown command: {args.command}")
         print("Commands: analyze, index, package")
-        sys.exit(0)
+        sys.exit(1)
 
-    command = sys.argv[1]
+    if args.command == "analyze":
+        analyze()
 
-    if command == "analyze":
-        name = sys.argv[2] if len(sys.argv) > 2 else None
-        analyze(name)
-        sys.exit(0)
+    elif args.command == "index":
+        index(args.source, args.schema)
 
-    if command == "index":
-        index()
-        sys.exit(0)
-
-    if command == "package":
+    elif args.command == "package":
         package()
-        sys.exit(0)
-
-    print(f"Unknown command: {command}")
-    print("Commands: analyze, index, package")
-    sys.exit(1)
 
 
 if __name__ == "__main__":
