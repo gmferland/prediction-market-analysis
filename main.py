@@ -11,7 +11,7 @@ from src.common.util import package_data
 from src.common.util.strings import snake_to_title
 
 
-def analyze(name: str | None = None):
+def analyze(name: str | None = None, **kwargs):
     """Run analysis by name or show interactive menu."""
     analyses = Analysis.load()
 
@@ -92,38 +92,74 @@ def analyze(name: str | None = None):
             print(f"  {fmt}: {path}")
 
 
-def index():
-    """Interactive indexer selection menu."""
+def index(
+    source: str | None = None,
+    schema: str | None = None,
+):
+    """
+    Select an indexer and run data fetching.
+
+    Args:
+        source: Source to use (e.g., 'kalshi' or 'polymarket'). Used when interactive mode isn't provided.
+        schema: Type of data to fetch (e.g., 'trades' or 'markets'). Used when interactive mode isn't provided.
+    """
     indexers = Indexer.load()
 
     if not indexers:
         print("No indexers found in src/indexers/")
         return
 
-    # Build menu options
-    options = []
-    for indexer_cls in indexers:
+    if source is None and schema is None:
+        # Interactive mode
+        # Build menu options
+        options = []
+        for indexer_cls in indexers:
+            instance = indexer_cls()
+            options.append(f"{snake_to_title(instance.name)}: {instance.description}")
+        options.append("[Exit]")
+
+        menu = TerminalMenu(
+            options,
+            title="Select an indexer to run (use arrow keys):",
+            cycle_cursor=True,
+            clear_screen=False,
+        )
+        choice = menu.show()
+
+        if choice is None or choice == len(options) - 1:
+            print("Exiting.")
+            return
+
+        indexer_cls = indexers[choice]
         instance = indexer_cls()
-        options.append(f"{snake_to_title(instance.name)}: {instance.description}")
-    options.append("[Exit]")
+        print(f"\nRunning: {instance.name}\n")
+        instance.run()
+        print("\nIndexer complete.")
+    else:
+        # Non-interactive mode with source and type provided
+        if not source:
+            print("Source is required when passing command arguments.")
+            return
 
-    menu = TerminalMenu(
-        options,
-        title="Select an indexer to run (use arrow keys):",
-        cycle_cursor=True,
-        clear_screen=False,
-    )
-    choice = menu.show()
+        if not schema:
+            print("Schema is required when passing command arguments.")
+            return
 
-    if choice is None or choice == len(options) - 1:
-        print("Exiting.")
-        return
+        # Find the right indexer class
+        indexer_cls = None
+        for cls in indexers:
+            instance = cls()
+            if instance.name == f"{source}_{schema}":
+                indexer_cls = cls
+                break
 
-    indexer_cls = indexers[choice]
-    instance = indexer_cls()
-    print(f"\nRunning: {instance.name}\n")
-    instance.run()
-    print("\nIndexer complete.")
+        if not indexer_cls:
+            print(f"No indexer found with source={source} and type={schema}")
+            return
+
+        print(f"\nRunning: {indexer_cls()}\n")
+        indexer_cls().run()
+        print("\nIndexer complete.")
 
 
 def package():
