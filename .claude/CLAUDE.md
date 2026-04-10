@@ -7,10 +7,29 @@
 - Test: `make test`
 - Test (filter): `uv run pytest tests/{test_pattern}.py -v`
 
+For other python commands, always prefix with `uv run` to activate the virtual environment.
 
 ## Project Overview
 
 See @README.md for project purpose, guidelines, and local setup instructions.
+
+## Development Workflow
+
+### Testing Changes
+
+- After finishing a task, run `make lint` to check for syntax/style errors. Fix if any problems detected.
+
+### Committing Changes
+```bash
+git add .
+git commit -m "subject\n\n<body" -m "..."
+```
+
+### PR Guidelines
+- Keep PRs small and focused
+- Include detailed PR description
+- Link to related issues
+- Add any new code and documentation
 
 ## Key Design Patterns
 
@@ -41,24 +60,6 @@ Check `.env.example` for configuration templates.
 ### Tool Configuration
 - **Ruff** (code linter/formatter): See `pyproject.toml` configuration
 - **pytest**: Test runner configuration in `pyproject.toml`
-
-## Development Workflow
-
-### Committing Changes
-```bash
-git add .
-git commit -m "subject\n\n<body" -m "..."
-```
-
-### PR Guidelines
-- Keep PRs small and focused
-- Include detailed PR description
-- Link to related issues
-- Add any new code and documentation
-
-## Contributing
-
-See `CONTRIBUTING.md` for the contributing guidelines.
 
 ## Data Sources
 

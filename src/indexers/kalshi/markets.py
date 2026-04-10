@@ -1,7 +1,7 @@
 """Indexer for Kalshi markets data."""
 
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from src.common.indexer import Indexer
 from src.common.storage import ParquetStorage
@@ -14,19 +14,18 @@ CURSOR_FILE = Path("data/kalshi/.backfill_cursor")
 class KalshiMarketsIndexer(Indexer):
     """Fetches and stores Kalshi markets data."""
 
-    def __init__(
-        self,
-        min_close_ts: Optional[int] = None,
-        max_close_ts: Optional[int] = None,
-    ):
+    def __init__(self):
         super().__init__(
             name="kalshi_markets",
             description="Backfills Kalshi markets data to parquet files",
         )
-        self._min_close_ts = min_close_ts
-        self._max_close_ts = max_close_ts
 
-    def run(self) -> None:
+    def run(
+        self,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        max_records: int | None = None,
+    ) -> None:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         CURSOR_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -43,8 +42,9 @@ class KalshiMarketsIndexer(Indexer):
         for markets, next_cursor in client.iter_markets(
             limit=1000,
             cursor=cursor,
-            min_close_ts=self._min_close_ts,
-            max_close_ts=self._max_close_ts,
+            start_date=start_date.timestamp() if start_date is not None else None,
+            end_date=end_date.timestamp() if end_date is not None else None,
+            max_records=max_records,
         ):
             if markets:
                 total_stored = storage.append_markets(markets)
@@ -56,6 +56,9 @@ class KalshiMarketsIndexer(Indexer):
             else:
                 if CURSOR_FILE.exists():
                     CURSOR_FILE.unlink()
+                break
+
+            if total >= self.max_records:
                 break
 
         print(f"\nBackfill complete: {total} markets fetched")

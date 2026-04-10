@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from simple_term_menu import TerminalMenu
@@ -96,6 +97,9 @@ def analyze(name: str | None = None, **kwargs):
 def index(
     source: str | None = None,
     schema: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    max_records: int | None = None,
 ):
     """
     Select an indexer and run data fetching.
@@ -103,6 +107,9 @@ def index(
     Args:
         source: Source to use (e.g., 'kalshi' or 'polymarket'). Used when interactive mode isn't provided.
         schema: Type of data to fetch (e.g., 'trades' or 'markets'). Used when interactive mode isn't provided.
+        start_date: Start date in YYYY-MM-DD format. Converted to datetime if provided.
+        end_date: End date in YYYY-MM-DD format. Converted to datetime if provided.
+        max_records: Maximum number of records to fetch (converted to int if provided).
     """
     indexers = Indexer.load()
 
@@ -146,6 +153,10 @@ def index(
             print("Schema is required when passing command arguments.")
             return
 
+        # Convert date strings to datetime objects
+        start_date_dt = datetime.fromisoformat(start_date) if start_date else None
+        end_date_dt = datetime.fromisoformat(end_date) if end_date else None
+
         # Find the right indexer class
         indexer: Indexer = None
         for cls in indexers:
@@ -159,7 +170,7 @@ def index(
             return
 
         print(f"\nRunning: {str(indexer)}\n")
-        indexer.run()
+        indexer.run(start_date=start_date_dt, end_date=end_date_dt, max_records=max_records)
         print("\nIndexer complete.")
 
 
@@ -180,6 +191,9 @@ def main():
     index_parser = subparsers.add_parser("index", help="Run an indexer")
     index_parser.add_argument("--source", type=str, dest="source", help="Source to use (e.g. kalshi, polymarket)")
     index_parser.add_argument("--schema", type=str, dest="schema", help="Type of data to fetch (e.g. trades, markets)")
+    index_parser.add_argument("--start-date", type=str, dest="start_date", help="Start date in YYYY-MM-DD format")
+    index_parser.add_argument("--end-date", type=str, dest="end_date", help="End date in YYYY-MM-DD format")
+    index_parser.add_argument("--max-records", type=int, dest="max_records", help="Maximum number of records to fetch")
 
     # Package subcommand
     subparsers.add_parser("package", help="Package the data")
@@ -195,7 +209,13 @@ def main():
         analyze()
 
     elif args.command == "index":
-        index(args.source, args.schema)
+        index(
+            args.source,
+            args.schema,
+            args.start_date,
+            args.end_date,
+            args.max_records,
+        )
 
     elif args.command == "package":
         package()
