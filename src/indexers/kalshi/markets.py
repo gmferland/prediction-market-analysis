@@ -43,9 +43,8 @@ class KalshiMarketsIndexer(Indexer):
         for markets, next_cursor in client.iter_markets(
             limit=1000,
             cursor=cursor,
-            start_date=start_date.timestamp() if start_date is not None else None,
-            end_date=end_date.timestamp() if end_date is not None else None,
-            max_records=max_records,
+            min_close_ts=start_date.timestamp() if start_date is not None else None,
+            max_close_ts=end_date.timestamp() if end_date is not None else None,
         ):
             if markets:
                 total_stored = storage.append_markets(markets)
@@ -59,7 +58,7 @@ class KalshiMarketsIndexer(Indexer):
                     CURSOR_FILE.unlink()
                 break
 
-            if total >= self.max_records:
+            if total >= max_records:
                 break
 
         print(f"\nBackfill complete: {total} markets fetched")
