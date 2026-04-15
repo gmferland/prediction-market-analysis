@@ -6,6 +6,7 @@ from pathlib import Path
 from src.common import config
 from src.common.indexer import Indexer
 from src.common.storage import ParquetStorage
+from src.common.util.datetime import to_timestamp
 from src.indexers.kalshi.client import KalshiClient
 
 DATA_DIR = Path(config.DATA_DIR, "kalshi/markets")
@@ -43,8 +44,8 @@ class KalshiMarketsIndexer(Indexer):
         for markets, next_cursor in client.iter_markets(
             limit=1000,
             cursor=cursor,
-            min_close_ts=start_date.timestamp() if start_date is not None else None,
-            max_close_ts=end_date.timestamp() if end_date is not None else None,
+            min_close_ts=to_timestamp(start_date) if start_date is not None else None,
+            max_close_ts=to_timestamp(end_date) if end_date is not None else None,
         ):
             if markets:
                 total_stored = storage.append_markets(markets)
