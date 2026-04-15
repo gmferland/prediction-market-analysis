@@ -8,8 +8,8 @@ from src.common.indexer import Indexer
 from src.common.storage import ParquetStorage
 from src.indexers.kalshi.client import KalshiClient
 
-DATA_DIR = Path(config.DATA_DIR / "kalshi/markets")
-CURSOR_FILE = Path(config.DATA_DIR / "kalshi/.backfill_cursor")
+DATA_DIR = Path(config.DATA_DIR, "kalshi/markets")
+CURSOR_FILE = Path(config.DATA_DIR, "kalshi/.backfill_cursor")
 
 
 class KalshiMarketsIndexer(Indexer):

@@ -14,9 +14,9 @@ from src.common import config
 from src.common.indexer import Indexer
 from src.indexers.kalshi.client import KalshiClient
 
-DATA_DIR = Path(config.DATA_DIR / "kalshi/trades")
-MARKETS_DIR = Path(config.DATA_DIR / "kalshi/markets")
-CURSOR_FILE = Path(config.DATA_DIR / "kalshi/.backfill_trades_cursor")
+DATA_DIR = Path(config.DATA_DIR, "kalshi/trades")
+MARKETS_DIR = Path(config.DATA_DIR, "kalshi/markets")
+CURSOR_FILE = Path(config.DATA_DIR, "kalshi/.backfill_trades_cursor")
 
 
 class KalshiTradesIndexer(Indexer):
