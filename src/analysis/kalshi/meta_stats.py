@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import duckdb
 import pandas as pd
 
+from src.common import config
 from src.common.analysis import Analysis, AnalysisOutput
 
 
@@ -22,41 +24,56 @@ class MetaStatsAnalysis(Analysis):
             name="meta_stats",
             description="Dataset meta statistics including trade and market counts",
         )
-        base_dir = Path(__file__).parent.parent.parent.parent
-        self.trades_dir = Path(trades_dir or base_dir / "data" / "kalshi" / "trades")
-        self.markets_dir = Path(markets_dir or base_dir / "data" / "kalshi" / "markets")
+        self.trades_dir = Path(trades_dir) if trades_dir else Path(config.DATA_DIR, "kalshi", "trades")
+        self.markets_dir = Path(markets_dir) if markets_dir else Path(config.DATA_DIR, "kalshi", "markets")
 
     def run(self) -> AnalysisOutput:
         """Execute the analysis and return outputs."""
         con = duckdb.connect()
-
         # Trade statistics
-        trade_stats = con.execute(
-            f"""
-            SELECT
-                COUNT(*) AS num_trades,
-                SUM(count) AS total_volume,
-                COUNT(DISTINCT ticker) AS num_tickers
-            FROM '{self.trades_dir}/*.parquet'
-            """
-        ).fetchone()
-
-        num_trades = trade_stats[0]
-        total_volume = trade_stats[1]
-        num_tickers_from_trades = trade_stats[2]
+        if not self.trades_dir.exists() or not self.trades_dir.is_dir() or not list(self.trades_dir.glob("*.parquet")):
+            num_trades = 0
+            total_volume = 0
+            num_tickers_from_trades = 0
+        else:
+            trade_stats = con.execute(
+                f"""
+                    SELECT
+                        COUNT(*) AS num_trades,
+                        SUM(count) AS total_volume,
+                        COUNT(DISTINCT ticker) AS num_tickers
+                    FROM '{self.trades_dir}/*.parquet'
+                    """
+            ).fetchone()
+            num_trades = trade_stats[0]
+            total_volume = trade_stats[1]
+            num_tickers_from_trades = trade_stats[2]
 
         # Market statistics
-        market_stats = con.execute(
-            f"""
-            SELECT
-                COUNT(*) AS num_markets,
-                COUNT(DISTINCT event_ticker) AS num_events
-            FROM '{self.markets_dir}/*.parquet'
-            """
-        ).fetchone()
-
-        num_markets = market_stats[0]
-        num_events = market_stats[1]
+        if (
+            not self.markets_dir.exists()
+            or not self.markets_dir.is_dir()
+            or not list(self.markets_dir.glob("*.parquet"))
+        ):
+            num_markets = 0
+            num_events = 0
+            min_close_time = None
+            max_close_time = None
+        else:
+            market_stats = con.execute(
+                f"""
+                    SELECT
+                        COUNT(*) AS num_markets,
+                        COUNT(DISTINCT event_ticker) AS num_events,
+                        MIN(close_time) AS min_close_time,
+                        MAX(close_time) AS max_close_time
+                    FROM '{self.markets_dir}/*.parquet'
+                    """
+            ).fetchone()
+            num_markets = market_stats[0]
+            num_events = market_stats[1]
+            min_close_time = market_stats[2]
+            max_close_time = market_stats[3]
 
         # Build DataFrame with statistics
         df = pd.DataFrame(
@@ -96,10 +113,24 @@ class MetaStatsAnalysis(Analysis):
                     "value": num_tickers_from_trades,
                     "formatted": self._format_number(num_tickers_from_trades),
                 },
+                {
+                    "metric": "num_markets_with_close_times",
+                    "value": num_markets,
+                    "formatted": self._format_number(num_markets),
+                },
+                {
+                    "metric": "min_close_time",
+                    "value": min_close_time,
+                    "formatted": self._format_datetime(min_close_time),
+                },
+                {
+                    "metric": "max_close_time",
+                    "value": max_close_time,
+                    "formatted": self._format_datetime(max_close_time),
+                },
             ]
         )
 
-        # No figure or chart for this analysis (it generates data/stats only)
         return AnalysisOutput(figure=None, data=df, chart=None)
 
     @staticmethod
@@ -108,9 +139,19 @@ class MetaStatsAnalysis(Analysis):
         return f"{n:,}"
 
     @staticmethod
+    def _format_nan(n: float) -> str:
+        """Format a number as 'N/A'."""
+        return "N/A"
+
+    @staticmethod
     def _format_billions(n: float) -> str:
         """Format a number as billions with 2 decimal places."""
         return f"{n / 1e9:.2f}"
+
+    @staticmethod
+    def _format_datetime(dt: datetime) -> str:
+        """Convert a datetime string to ISO format."""
+        return dt.strftime("%b %d, %Y %H:%M:%S %Z")
 
     @staticmethod
     def _format_millions(n: float) -> str:
