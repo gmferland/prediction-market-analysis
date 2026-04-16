@@ -15,6 +15,7 @@ Usage:
 
 from __future__ import annotations
 
+import datetime as dt
 import importlib
 import inspect
 from abc import ABC, abstractmethod
@@ -27,12 +28,21 @@ class Indexer(ABC):
     Subclasses implement `run()` to fetch and store data.
     """
 
-    def __init__(self, name: str, description: str):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+    ):
         self.name = name
         self.description = description
 
     @abstractmethod
-    def run(self) -> None:
+    def run(
+        self,
+        start_date: dt.datetime | None = None,
+        end_date: dt.datetime | None = None,
+        max_records: int | None = None,
+    ) -> None:
         """Execute the indexer to fetch and store data."""
         pass
 

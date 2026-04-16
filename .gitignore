@@ -28,3 +28,6 @@ fig
 *.tar.zst
 output
 .tmp
+
+# Local settings
+.claude/settings.local.json
