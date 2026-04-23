@@ -185,7 +185,8 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Analyze subcommand
-    subparsers.add_parser("analyze", help="Run an analysis")
+    analyze_parser = subparsers.add_parser("analyze", help="Run an analysis")
+    analyze_parser.add_argument("--name", type=str, help="Name of the analysis script")
 
     # Index subcommand
     index_parser = subparsers.add_parser("index", help="Run an indexer")
@@ -206,7 +207,7 @@ def main():
         sys.exit(1)
 
     if args.command == "analyze":
-        analyze()
+        analyze(args.name)
 
     elif args.command == "index":
         index(
